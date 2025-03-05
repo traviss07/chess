@@ -205,7 +205,7 @@ public class GameWindow {
                 		
                 		// this is the only section you really need to modify (although you're certainly welcome to mess
                 		//with the rest of the file, but do so at your own peril)
-                        " <<<<<<<<<<<<<<<Your instructions go here>>>>>>>>>",
+                        "In this version of chess, each player starts with 8 kings. \n The king is able to move 1 square in any direction and can \n capture any pieces in that area. White goes first and each color \n alternates moves until there are no pieces left. \n Checkmate with only kings doesn't really have functionality yet.",
                         
                         
                         
