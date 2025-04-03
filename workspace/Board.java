@@ -1,4 +1,4 @@
-
+// checkmate functionality is not workign but this is due and i have other work to do
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -35,13 +35,17 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
 	
 	// Logical and graphical representations of board
 	private final Square[][] board;
-    private final GameWindow g;
+    private final GameWindow g; // use this for checkmate
  
     //contains true if it's white's turn.
     private boolean whiteTurn;
+    
+    // checks if game is over
+    private boolean gameOver = false;
 
     //if the player is currently dragging a piece this variable contains it.
     private Piece currPiece;
+    private Piece checkCheck;
     private Square fromMoveSquare;
     
     //used to keep track of the x/y coordinates of the mouse.
@@ -102,12 +106,95 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
     //Preconditions: the board must have been made
     // Postconditions: 8 pieces of each color are added to the board- white to the top and black to the bottom
     private void initializePieces() {
-    	for (int i = 0; i < 8; i++){ // places a row of white and black kings
-            board[0][i].put(new Piece(true, RESOURCES_WKING_PNG)); // top row of white kings
-            board[7][i].put(new Piece(false, RESOURCES_BKING_PNG)); // bottom of black kings
-        }    	
+    	for (int i = 0; i < 8; i++){ // places a row of white and black pawns
+            board[1][i].put(new Pawn(false, RESOURCES_BPAWN_PNG)); // top row of white pawns
+            board[6][i].put(new Pawn(true, RESOURCES_WPAWN_PNG)); // bottom of black pawns
+        }
+        // rooks
+        board[0][0].put(new Rook(false, RESOURCES_BROOK_PNG));
+        board[0][7].put(new Rook(false, RESOURCES_BROOK_PNG)); 	
+        board[7][0].put(new Rook(true, RESOURCES_WROOK_PNG));
+        board[7][7].put(new Rook(true, RESOURCES_WROOK_PNG));
+        // knights
+        board[0][1].put(new Knight(false, RESOURCES_BKNIGHT_PNG));
+        board[0][6].put(new Knight(false, RESOURCES_BKNIGHT_PNG));
+        board[7][1].put(new Knight(true, RESOURCES_WKNIGHT_PNG));
+        board[7][6].put(new Knight(true, RESOURCES_WKNIGHT_PNG));
+        // bishops
+        board[0][2].put(new Bishop(false, RESOURCES_BBISHOP_PNG));
+        board[0][5].put(new Bishop(false, RESOURCES_BBISHOP_PNG));
+        board[7][2].put(new Bishop(true, RESOURCES_WBISHOP_PNG));
+        board[7][5].put(new Bishop(true, RESOURCES_WBISHOP_PNG));
+        // kings
+        board[0][4].put(new King(false, RESOURCES_BKING_PNG));
+        board[7][4].put(new King(true, RESOURCES_WKING_PNG));
+        // queens
+        board[0][3].put(new Queen(false, RESOURCES_BQUEEN_PNG));
+        board[7][3].put(new Queen(true, RESOURCES_WQUEEN_PNG));
 
     }
+
+    //precondition - the board is initialized and contains a king of either color. The boolean kingColor corresponds to the color of the king we wish to know the status of.
+    //postcondition - returns true of the king is in check and false otherwise.
+	public boolean isInCheck(boolean kingColor){
+        ArrayList<Square> opposite = new ArrayList<>();
+        for (int i = 0; i < 8; i++){
+            for(int j = 0; j < 8; j++){
+                // if the piece on board[i][j] isn't empty and is the opposite color of the king
+                if (board[i][j].getOccupyingPiece()!= null && board[i][j].getOccupyingPiece().getColor() != kingColor){ // kingColor true is white, false is black
+                    opposite.addAll(board[i][j].getOccupyingPiece().getControlledSquares(board, board[i][j]));
+                    // add all arraylists of controlled squares for each piece to the opposite arraylist
+                }
+            }
+        }
+        for (int i = 0; i < opposite.size(); i++){ // loops thru all piece locations in opposite list
+                if(opposite.get(i).getOccupyingPiece() instanceof King && opposite.get(i).getOccupyingPiece().getColor() == kingColor) { // if king is on a piece in opposite and is 
+                    return true;
+                }
+            }
+            return false;
+        }
+
+            //precondition - the board is initialized and contains a king of either color. The boolean kingColor corresponds to the color of the king we wish to know the status of.
+        //postcondition - returns true of the king is in checkmate and false otherwise.
+    public boolean isCheckmate(boolean kingColor){
+        if(isInCheck(kingColor) == false){
+            return false;
+        }
+        ArrayList<Square> legalMoves = new ArrayList<>();
+        for (int i = 0; i < 8; i++){
+            for (int j = 0; j < 8; j++){
+                Piece p = board[i][j].getOccupyingPiece(); // makes current piece respective to board square
+                if (p != null & p.getColor() == kingColor){ // if piece is there and same color as king
+                    fromMoveSquare = board[i][j]; // start piece or board spot
+                    legalMoves = p.getLegalMoves(this, fromMoveSquare);
+                    for (Square move : legalMoves){ // loops through every move in legalMoves - checks X for each move
+                        Piece temp = move.getOccupyingPiece(); // saves checked piece to undo
+                        move.put(p); //moves checked piece
+                        fromMoveSquare.removePiece(); // removes checked piece from original location
+
+                        boolean moveInCheck = isInCheck (kingColor); // checks if king remains checked after the move
+
+                        //undos move if king no longer in check
+                        if (moveInCheck == false){
+                            fromMoveSquare.put(p);
+                            move.removePiece();
+                            return false;
+                        }
+                        // undos without returning false - tries again
+                        fromMoveSquare.put(p);
+                        move.removePiece();
+
+
+                    }
+                }
+            }
+        }
+        return true; // remains in check after all moves
+    } 
+        
+        
+    
 
     public Square[][] getSquareArray() {
         return this.board;
@@ -148,7 +235,11 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {
+    public void mousePressed(MouseEvent e) { 
+        if (gameOver){
+            g.checkmateOccurred(whiteTurn);
+            return; // can't make moves if the game ends
+        }
         currX = e.getX();
         currY = e.getY();
 
@@ -175,27 +266,63 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
     //Postconditions: Piece is moved to where mouse is released and erased from previous location provided move is legal
     @Override
     public void mouseReleased(MouseEvent e) {
-        if(currPiece != null && currPiece.getColor() == whiteTurn){ // prevents from dereferencing currPiece
-                // if this color == move color
-            Square endSquare = (Square) this.getComponentAt(new Point(e.getX(), e.getY()));
-                        
+        if (gameOver){
+            g.checkmateOccurred(whiteTurn);
+            return; // can't make moves if the game ends
+        }
+        
+            if(currPiece != null && currPiece.getColor() == whiteTurn){ // prevents from dereferencing currPiece
+                    // if this color == move color
+                Square endSquare = (Square) this.getComponentAt(new Point(e.getX(), e.getY()));
 
-            for (Square [] row: board){
-                for(Square z: row){
-                     z.setBorder(null);
+                for (Square [] row: board){
+                    for(Square z: row){
+                        z.setBorder(null);
+                    }
                 }
+                    //using currPiece
+                if (currPiece.getLegalMoves(this, fromMoveSquare).contains(endSquare) && (endSquare.getOccupyingPiece() == null || endSquare.getOccupyingPiece().getColor() != currPiece.getColor())){
+                    Piece captured = endSquare.getOccupyingPiece();
+                    endSquare.put(currPiece);
+                    fromMoveSquare.removePiece();
+
+                    if (isInCheck(whiteTurn)){ // undos move if king is in check
+                        fromMoveSquare.put(currPiece);
+                        endSquare.removePiece(); 
+                        if (captured != null){
+                            endSquare.put(captured);
+                        }
+                        if (isCheckmate(whiteTurn)){
+                            gameOver = true;
+                            g.checkmateOccurred(whiteTurn);
+                            repaint();
+                        }
+                    }
+                    else if (currPiece instanceof King){
+                        if (currPiece.getControlledSquares(this.board, fromMoveSquare).contains(endSquare)){
+                            fromMoveSquare.put(currPiece);
+                            endSquare.removePiece();
+                            if (captured != null){
+                                endSquare.put(captured);
+                            }
+                            if (isCheckmate(whiteTurn)){
+                                gameOver = true;
+                                g.checkmateOccurred(whiteTurn);
+                            }
+                        }
+                    } else {
+                        whiteTurn =! whiteTurn;
+                        if (isCheckmate(whiteTurn)){
+                            gameOver = true;
+                            g.checkmateOccurred(whiteTurn);
+                        }
+                    }
+                }
+                
+                fromMoveSquare.setDisplay(true);
+                currPiece = null;
+                repaint();
             }
-                //using currPiece
-            if (currPiece.getLegalMoves(this, fromMoveSquare).contains(endSquare)){
-                endSquare.put(currPiece);
-                fromMoveSquare.removePiece();
-                 whiteTurn =! whiteTurn;
-             }
-            
-            fromMoveSquare.setDisplay(true);
-             currPiece = null;
-             repaint();
-         }
       }
 
     
@@ -204,6 +331,10 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
       // note legal moves are currently not shown but functionality is there if the display of controlledsquares was removed or modified
     @Override
     public void mouseDragged(MouseEvent e) {
+        if (gameOver){
+            g.checkmateOccurred(whiteTurn);
+            return; // can't make moves if the game ends
+        }
         if(currPiece != null){
         currX = e.getX() - 24;
         currY = e.getY() - 24;
