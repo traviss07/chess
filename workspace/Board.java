@@ -292,38 +292,21 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
                         if (captured != null){
                             endSquare.put(captured);
                         }
+                    } else {
+                        whiteTurn = !whiteTurn;
                         if (isCheckmate(whiteTurn)){
                             gameOver = true;
                             g.checkmateOccurred(whiteTurn);
                             repaint();
-                        }
-                    }
-                    else if (currPiece instanceof King){
-                        if (currPiece.getControlledSquares(this.board, fromMoveSquare).contains(endSquare)){
-                            fromMoveSquare.put(currPiece);
-                            endSquare.removePiece();
-                            if (captured != null){
-                                endSquare.put(captured);
-                            }
-                            if (isCheckmate(whiteTurn)){
-                                gameOver = true;
-                                g.checkmateOccurred(whiteTurn);
                             }
                         }
-                    } else {
-                        whiteTurn =! whiteTurn;
-                        if (isCheckmate(whiteTurn)){
-                            gameOver = true;
-                            g.checkmateOccurred(whiteTurn);
-                        }
                     }
-                }
                 
                 fromMoveSquare.setDisplay(true);
                 currPiece = null;
                 repaint();
             }
-      }
+        }
 
     
       //preconditions: same as before board pieces and squares must exist 
